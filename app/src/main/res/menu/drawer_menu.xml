@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_dashboard"
+            android:icon="@android:drawable/ic_menu_today"
+            android:title="Dashboard" />
+        <item
+            android:id="@+id/nav_today"
+            android:icon="@android:drawable/ic_menu_my_calendar"
+            android:title="Today's Classes" />
+        <item
+            android:id="@+id/nav_stats"
+            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:title="Statistics" />
+        <item
+            android:id="@+id/nav_timetable"
+            android:icon="@android:drawable/ic_menu_week"
+            android:title="Timetable" />
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="Settings" />
+    </group>
+</menu>

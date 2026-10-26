@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Attendance Tracker</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <!-- Add these array definitions -->
+    <string-array name="absence_categories">
+        <item>Medical</item>
+        <item>Personal</item>
+        <item>Emergency</item>
+        <item>Official Duty</item>
+        <item>Other</item>
+    </string-array>
+
+    <string-array name="days_of_week">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <string-array name="leave_statuses">
+        <item>Pending</item>
+        <item>Approved</item>
+        <item>Rejected</item>
+    </string-array>
+</resources>
