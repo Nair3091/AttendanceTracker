@@ -25,6 +25,17 @@
         <activity android:name=".activities.CourseDetailActivity" />
         <activity android:name=".activities.MarkAttendanceActivity" />
         <activity android:name=".activities.AbsenceDetailActivity" />
+        <activity android:name=".activities.AbsenceListActivity" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

@@ -16,12 +16,32 @@ public class AttendanceDao {
     }
 
     /**
-     * Inserts or updates an attendance record.
-     * The database schema has a UNIQUE constraint on (course_id, date, slot_start).
+     * Inserts a record, or updates the existing one IN PLACE when a row for the same
+     * (course_id, date, slot_start) already exists. Updating in place keeps the row id
+     * stable, so proofs attached to that row stay linked.
+     *
+     * On an existing row only the status is changed: the reason/leave arguments are used
+     * for new rows only (use updateAbsenceDetails to edit them later). If the new status
+     * is not 'A', the old absence details are cleared.
      */
     public long upsertAttendance(long courseId, String date, String slotStart, String status,
                                  String reasonCategory, String reasonText, String leaveStatus) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+        if (slotStart == null) slotStart = "";
+
+        long existingId = findAttendanceId(db, courseId, date, slotStart);
+        if (existingId != -1) {
+            ContentValues update = new ContentValues();
+            update.put("status", status);
+            if (!"A".equals(status)) {
+                update.putNull("reason_category");
+                update.putNull("reason_text");
+                update.put("leave_status", "None");
+            }
+            db.update("attendance", update, "id = ?", new String[]{String.valueOf(existingId)});
+            return existingId;
+        }
+
         ContentValues values = new ContentValues();
         values.put("course_id", courseId);
         values.put("date", date);
@@ -31,8 +51,49 @@ public class AttendanceDao {
         values.put("reason_text", reasonText);
         values.put("leave_status", leaveStatus);
 
-        // Conflict resolution: update existing record instead of adding duplicate
-        return db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        return db.insert("attendance", null, values);
+    }
+
+    private long findAttendanceId(SQLiteDatabase db, long courseId, String date, String slotStart) {
+        Cursor c = db.rawQuery(
+                "SELECT id FROM attendance WHERE course_id = ? AND date = ? AND slot_start = ?",
+                new String[]{String.valueOf(courseId), date, slotStart});
+        try {
+            return c.moveToFirst() ? c.getLong(0) : -1;
+        } finally {
+            c.close();
+        }
+    }
+
+    /**
+     * Saves the absence form fields onto an existing attendance row.
+     * Returns the number of rows updated (1 on success, 0 if the id doesn't exist).
+     */
+    public int updateAbsenceDetails(long attendanceId, String category, String reasonText, String leaveStatus) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("reason_category", category);
+        values.put("reason_text", reasonText);
+        values.put("leave_status", leaveStatus);
+        return db.update("attendance", values, "id = ?", new String[]{String.valueOf(attendanceId)});
+    }
+
+    /**
+     * Returns {reason_category, reason_text, leave_status} for a row, or null if not found.
+     */
+    public String[] getAbsenceDetails(long attendanceId) {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor c = db.rawQuery(
+                "SELECT reason_category, reason_text, leave_status FROM attendance WHERE id = ?",
+                new String[]{String.valueOf(attendanceId)});
+        try {
+            if (c.moveToFirst()) {
+                return new String[]{c.getString(0), c.getString(1), c.getString(2)};
+            }
+            return null;
+        } finally {
+            c.close();
+        }
     }
 
     /**
@@ -67,6 +128,33 @@ public class AttendanceDao {
             cursor.close();
         }
         return count;
+    }
+
+    /**
+     * Absences ('A') only, newest first, for the course's Absences list.
+     */
+    public List<AttendanceRecord> getAbsencesForCourse(long courseId) {
+        List<AttendanceRecord> list = new ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT id, date, slot_start, status, reason_category FROM attendance " +
+                        "WHERE course_id = ? AND status = 'A' ORDER BY date DESC, slot_start DESC",
+                new String[]{String.valueOf(courseId)}
+        );
+        try {
+            while (cursor.moveToNext()) {
+                list.add(new AttendanceRecord(
+                        cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("date")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("slot_start")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("status")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("reason_category"))
+                ));
+            }
+        } finally {
+            cursor.close();
+        }
+        return list;
     }
 
     /**

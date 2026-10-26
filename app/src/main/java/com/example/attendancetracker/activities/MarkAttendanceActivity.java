@@ -24,6 +24,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private AttendanceDao attendanceDao;
     private List<Course> courseList;
     private long incomingCourseId = -1;
+    private String incomingSlot = null; // class slot passed from Today's Classes (e.g. "10:00")
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +36,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
         // Capture the course ID passed from CourseDetailActivity (if any)
         incomingCourseId = getIntent().getLongExtra("course_id", -1);
+        incomingSlot = getIntent().getStringExtra("slot_start");
 
         courseSpinner = findViewById(R.id.spinnerCourses);
         datePicker = findViewById(R.id.datePicker);
@@ -93,7 +95,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             status = "C";
         }
 
-        long result = attendanceDao.upsertAttendance(selectedCourse.getId(), dateStr, "09:00", status, null, null, "None");
+        // Use the real slot when we came from Today's Classes; manual entries keep the old default
+        String slot = incomingSlot != null ? incomingSlot : "09:00";
+        long result = attendanceDao.upsertAttendance(selectedCourse.getId(), dateStr, slot, status, null, null, "None");
 
         if (result != -1) {
             Toast.makeText(this, "Attendance saved successfully", Toast.LENGTH_SHORT).show();

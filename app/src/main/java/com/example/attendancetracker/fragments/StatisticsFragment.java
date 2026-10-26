@@ -40,6 +40,20 @@ public class StatisticsFragment extends Fragment {
         loadStatistics();
     }
 
+    private static final String[] MONTH_NAMES =
+            {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    /** "2026-10" -> "Oct '26" */
+    private String monthLabel(String ym) {
+        try {
+            String[] parts = ym.split("-");
+            int month = Integer.parseInt(parts[1]);
+            return MONTH_NAMES[month - 1] + " '" + parts[0].substring(2);
+        } catch (Exception e) {
+            return ym;
+        }
+    }
+
     private void loadStatistics() {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
@@ -54,10 +68,13 @@ public class StatisticsFragment extends Fragment {
         );
 
         int present = 0, absent = 0, cancelled = 0;
-        if (cursor != null && cursor.moveToFirst()) {
-            present = cursor.getInt(cursor.getColumnIndexOrThrow("present"));
-            absent = cursor.getInt(cursor.getColumnIndexOrThrow("absent"));
-            cancelled = cursor.getInt(cursor.getColumnIndexOrThrow("cancelled"));
+        try {
+            if (cursor.moveToFirst()) {
+                present = cursor.getInt(cursor.getColumnIndexOrThrow("present"));
+                absent = cursor.getInt(cursor.getColumnIndexOrThrow("absent"));
+                cancelled = cursor.getInt(cursor.getColumnIndexOrThrow("cancelled"));
+            }
+        } finally {
             cursor.close();
         }
 
@@ -66,27 +83,33 @@ public class StatisticsFragment extends Fragment {
         }
 
         // 2. Fetch Monthly Trend percentages for Bar Chart
+        // Latest 4 months (year-aware), percentage = P / (P + A); cancelled classes are excluded
         Cursor barCursor = db.rawQuery(
-                "SELECT strftime('%m', date) AS month, " +
+                "SELECT ym, present_count, held_count FROM (" +
+                        "SELECT strftime('%Y-%m', date) AS ym, " +
                         "SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END) AS present_count, " +
-                        "COUNT(*) AS total_count " +
-                        "FROM attendance GROUP BY month ORDER BY month ASC LIMIT 4",
+                        "SUM(CASE WHEN status IN ('P','A') THEN 1 ELSE 0 END) AS held_count " +
+                        "FROM attendance WHERE date IS NOT NULL " +
+                        "GROUP BY ym HAVING held_count > 0 " +
+                        "ORDER BY ym DESC LIMIT 4) " +
+                        "ORDER BY ym ASC",
                 null
         );
 
         List<Float> percentages = new ArrayList<>();
         List<String> labels = new ArrayList<>();
 
-        if (barCursor != null && barCursor.moveToFirst()) {
-            do {
+        try {
+            while (barCursor.moveToNext()) {
                 int p = barCursor.getInt(barCursor.getColumnIndexOrThrow("present_count"));
-                int t = barCursor.getInt(barCursor.getColumnIndexOrThrow("total_count"));
-                String m = barCursor.getString(barCursor.getColumnIndexOrThrow("month"));
+                int held = barCursor.getInt(barCursor.getColumnIndexOrThrow("held_count"));
+                String ym = barCursor.getString(barCursor.getColumnIndexOrThrow("ym"));
 
-                float pct = t > 0 ? (p / (float) t) * 100f : 0f;
+                float pct = held > 0 ? (p / (float) held) * 100f : 0f;
                 percentages.add(pct);
-                labels.add("M" + m);
-            } while (barCursor.moveToNext());
+                labels.add(monthLabel(ym));
+            }
+        } finally {
             barCursor.close();
         }
 

@@ -22,7 +22,8 @@ public class AttendanceCalculator {
         if (targetPercent <= 0) return 0;
         double target = targetPercent / 100.0;
         double maxHeld = attended / target;
-        int safeSkips = (int) Math.floor(maxHeld - held);
+        // + 1e-9: double division can land just below a whole number (e.g. 49.999999999)
+        int safeSkips = (int) Math.floor(maxHeld - held + 1e-9);
         return Math.max(0, safeSkips);
     }
 
@@ -32,7 +33,8 @@ public class AttendanceCalculator {
      */
     public static int calculateRecoveryClasses(int attended, int held, double targetPercent) {
         if (targetPercent >= 100) {
-            return -1; // Recovery not possible for 100% target once an absence exists[cite: 5]
+            // Only an unbroken record meets 100%; once an absence exists it can never be recovered
+            return attended >= held ? 0 : -1;
         }
         double target = targetPercent / 100.0;
         double numerator = (target * held) - attended;
@@ -40,6 +42,7 @@ public class AttendanceCalculator {
         if (numerator <= 0) {
             return 0; // Already at or above target
         }
-        return (int) Math.ceil(numerator / denominator);
+        // - 1e-9: double division can land just above a whole number (e.g. 51.00000000001)
+        return (int) Math.ceil(numerator / denominator - 1e-9);
     }
 }

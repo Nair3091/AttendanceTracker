@@ -37,8 +37,8 @@ public class CourseDao {
                 null
         );
 
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
+        try {
+            while (cursor.moveToNext()) {
                 long id = cursor.getLong(cursor.getColumnIndexOrThrow("id"));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
                 String code = cursor.getString(cursor.getColumnIndexOrThrow("code"));
@@ -48,7 +48,8 @@ public class CourseDao {
 
                 // Matches the 6-parameter constructor in Course.java
                 courseList.add(new Course(id, name, code, targetPercentage, presentCount, absentCount));
-            } while (cursor.moveToNext());
+            }
+        } finally {
             cursor.close();
         }
 

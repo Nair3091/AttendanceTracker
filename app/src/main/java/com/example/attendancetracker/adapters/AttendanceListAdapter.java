@@ -45,7 +45,8 @@ public class AttendanceListAdapter extends BaseAdapter {
         TextView text1 = convertView.findViewById(android.R.id.text1);
         TextView text2 = convertView.findViewById(android.R.id.text2);
 
-        text1.setText("Date: " + record.getDate() + " | Status: " + record.getStatus());
+        String slot = record.getSlotStart() != null ? " " + record.getSlotStart() : "";
+        text1.setText("Date: " + record.getDate() + slot + " | Status: " + record.getStatus());
         text2.setText("Reason: " + (record.getReasonCategory() != null ? record.getReasonCategory() : "None"));
 
         return convertView;

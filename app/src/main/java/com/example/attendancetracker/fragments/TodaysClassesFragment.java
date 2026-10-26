@@ -26,6 +26,7 @@ public class TodaysClassesFragment extends Fragment {
     private ListView listViewToday;
     private DatabaseHelper dbHelper;
     private List<Long> courseIdsList = new ArrayList<>();
+    private List<String> slotsList = new ArrayList<>(); // slot_start, parallel to courseIdsList
 
     @Nullable
     @Override
@@ -42,6 +43,7 @@ public class TodaysClassesFragment extends Fragment {
                 long courseId = courseIdsList.get(position);
                 Intent intent = new Intent(requireContext(), MarkAttendanceActivity.class);
                 intent.putExtra("course_id", courseId);
+                intent.putExtra("slot_start", slotsList.get(position));
                 startActivity(intent);
             } else {
                 Toast.makeText(requireContext(), "No classes scheduled for this slot", Toast.LENGTH_SHORT).show();
@@ -59,11 +61,12 @@ public class TodaysClassesFragment extends Fragment {
 
     private void loadTodaysClasses() {
         // Automatically fetches current day name matching the DB (e.g., "Monday", "Tuesday")
-        String currentDay = new SimpleDateFormat("EEEE", Locale.getDefault()).format(new Date());
+        String currentDay = new SimpleDateFormat("EEEE", Locale.ENGLISH).format(new Date()); // timetable stores English day names
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         List<String> todaysClasses = new ArrayList<>();
         courseIdsList.clear();
+        slotsList.clear();
 
         // Query timetable joined with courses for the current day
         Cursor cursor = db.rawQuery(
@@ -72,15 +75,17 @@ public class TodaysClassesFragment extends Fragment {
                 new String[]{currentDay}
         );
 
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
+        try {
+            while (cursor.moveToNext()) {
                 long courseId = cursor.getLong(cursor.getColumnIndexOrThrow("course_id"));
                 String time = cursor.getString(cursor.getColumnIndexOrThrow("slot_start"));
                 String courseName = cursor.getString(cursor.getColumnIndexOrThrow("name"));
 
                 todaysClasses.add(courseName + " (" + time + ")");
                 courseIdsList.add(courseId);
-            } while (cursor.moveToNext());
+                slotsList.add(time);
+            }
+        } finally {
             cursor.close();
         }
 

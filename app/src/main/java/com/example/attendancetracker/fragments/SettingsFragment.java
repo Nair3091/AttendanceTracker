@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.attendancetracker.R;
 import com.example.attendancetracker.db.DatabaseHelper;
+import java.io.File;
 
 public class SettingsFragment extends Fragment {
     private Button btnClearAttendance, btnResetDatabase;
@@ -39,11 +40,24 @@ public class SettingsFragment extends Fragment {
                 .setMessage("Are you sure you want to delete all logged attendance history? Your courses and timetable will remain intact.")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     SQLiteDatabase db = dbHelper.getWritableDatabase();
+                    db.execSQL("DELETE FROM proofs");
                     db.execSQL("DELETE FROM attendance");
+                    deleteProofFiles();
                     Toast.makeText(requireContext(), "All attendance records cleared.", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    /** Removes the copied proof files from app storage (their DB rows are removed separately). */
+    private void deleteProofFiles() {
+        File dir = new File(requireContext().getFilesDir(), "proofs");
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                f.delete();
+            }
+        }
     }
 
     private void showResetDatabaseDialog() {
@@ -52,10 +66,8 @@ public class SettingsFragment extends Fragment {
                 .setMessage("WARNING: This will permanently delete ALL courses, timetable slots, and attendance logs!")
                 .setPositiveButton("Reset Everything", (dialog, which) -> {
                     SQLiteDatabase db = dbHelper.getWritableDatabase();
-                    db.execSQL("DROP TABLE IF EXISTS timetable");
-                    db.execSQL("DROP TABLE IF EXISTS attendance");
-                    db.execSQL("DROP TABLE IF EXISTS courses");
-                    dbHelper.onCreate(db);
+                    dbHelper.resetAllTables(db);
+                    deleteProofFiles();
                     Toast.makeText(requireContext(), "Database has been completely reset.", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null)

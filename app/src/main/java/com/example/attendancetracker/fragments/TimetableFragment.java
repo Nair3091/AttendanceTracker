@@ -132,17 +132,21 @@ public class TimetableFragment extends Fragment {
         // Join timetable and courses table to display course name along with time and day
         Cursor cursor = db.rawQuery(
                 "SELECT t.day_of_week, t.slot_start, c.name FROM timetable t " +
-                        "JOIN courses c ON t.course_id = c.id ORDER BY t.day_of_week, t.slot_start",
+                        "JOIN courses c ON t.course_id = c.id ORDER BY " +
+                        "CASE t.day_of_week WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 " +
+                        "WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 " +
+                        "WHEN 'Saturday' THEN 6 WHEN 'Sunday' THEN 7 ELSE 8 END, t.slot_start",
                 null
         );
 
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
+        try {
+            while (cursor.moveToNext()) {
                 String day = cursor.getString(cursor.getColumnIndexOrThrow("day_of_week"));
                 String time = cursor.getString(cursor.getColumnIndexOrThrow("slot_start"));
                 String courseName = cursor.getString(cursor.getColumnIndexOrThrow("name"));
                 timetableItems.add(day + " at " + time + " - " + courseName);
-            } while (cursor.moveToNext());
+            }
+        } finally {
             cursor.close();
         }
 
