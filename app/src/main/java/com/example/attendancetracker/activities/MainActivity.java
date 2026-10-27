@@ -1,5 +1,4 @@
 package com.example.attendancetracker.activities;
-
 import android.os.Bundle;
 import android.view.MenuItem;
 import androidx.activity.OnBackPressedCallback;
